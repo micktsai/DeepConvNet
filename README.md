@@ -1,3 +1,3 @@
 # DeepConvNet
 
-DCN HW (lecture of NYCU)
+DCN RL HW (C of NYCU)
