@@ -62,8 +62,9 @@ class DCN(nn.Module):
         # FC
         x = x.view(-1,200*43)
         x = self.fc1(x)
-        x = F.softmax(x, dim=1)
-        x = torch.argmax(x, dim=1)
+        # BCELoss
+        # x = F.softmax(x, dim=1)
+        # x = torch.argmax(x, dim=1)
         x = x.view(-1,1)
         return x
 
@@ -88,6 +89,10 @@ def evaluate(model, X, Y, params = ["acc"]):
     
     predicted = predicted.data.cpu().numpy()
     
+    # CrossEntropyLoss
+    predicted = torch.reshape(torch.from_numpy(predicted),(-1,2)).float()
+    predicted = torch.argmax(predicted, dim=1)
+
     for param in params:
         if param == 'acc':
             results.append(accuracy_score(Y, np.round(predicted)))
@@ -106,7 +111,7 @@ def evaluate(model, X, Y, params = ["acc"]):
 def main():
     train_data, train_label, test_data, test_label = DL.read_bci_data()
     net = DCN().double()
-    criterion = nn.BCELoss()
+    criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(net.parameters())
     # print(net(train_data[0:10]))
     # net(train_data)
@@ -122,7 +127,11 @@ def main():
             e = i*batch_size+batch_size
             
             inputs = torch.from_numpy(train_data[s:e])
-            labels = torch.FloatTensor(np.array([train_label[s:e]]).T*1.0)
+            # BCELoss
+            # labels = torch.FloatTensor(np.array([train_label[s:e]]).T*1.0)
+            
+            # CrossEntropyLoss
+            labels = torch.LongTensor(np.array([train_label[s:e]]).T*1.0)
             
             # wrap them in Variable
             inputs, labels = Variable(inputs), Variable(labels)
@@ -132,9 +141,16 @@ def main():
 
             # forward + backward + optimize
             outputs = net(inputs)
-            # print(outputs)
-            # print(labels)
-            loss = criterion(outputs.float(), labels.float())
+            
+            outputs = torch.reshape(outputs,(-1,2))
+            labels = torch.reshape(labels,(-1,))
+
+            # CrossEntropyLoss
+            # labels = torch.tensor(labels, dtype=torch.long) 
+            loss = criterion(outputs.float(), labels)
+            
+            # BCELoss
+            # loss = criterion(outputs.float(), labels.float())
             loss = loss.requires_grad_()
             loss.reduction = 'sum'
             # print(loss)
